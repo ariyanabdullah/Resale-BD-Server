@@ -120,7 +120,19 @@ async function run() {
 
     // get api for advirtisment items
 
-    app.get("/advertisItem");
+    app.get("/advertisItem", async (req, res) => {
+      const isAdvertise = req.query.isAdvertise;
+
+      const filter = {
+        isAdvertise: Boolean(isAdvertise),
+      };
+
+      const Items = await productCollection.find(filter).toArray();
+
+      const result = Items.filter((i) => i.paid === undefined);
+
+      res.send(result);
+    });
 
     // advertis Items in product api
 
