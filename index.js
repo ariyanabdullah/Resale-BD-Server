@@ -213,7 +213,7 @@ async function run() {
 
     // get all products of a seller
 
-    app.get("/products", async (req, res) => {
+    app.get("/products", verifyJwt, verifySeller, async (req, res) => {
       const email = req.query.email;
       const query = { email: email };
       const result = await productCollection.find(query).toArray();
