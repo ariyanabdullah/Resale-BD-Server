@@ -3,6 +3,7 @@ const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+const jwt = require("jsonwebtoken");
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -14,21 +15,23 @@ console.log(process.env.DB_ACCESS_TOKEN);
 app.use(cors());
 app.use(express.json());
 
-// ===verify Token====
-function verifyJWT(req, res, next) {
+//===verify Token====
+const verifyJwt = (req, res, next) => {
   const authHeader = req.headers.authorization;
   if (!authHeader) {
     return res.status(401).send("unauthorize access");
   }
-  const token = authHeader;
-  jwt.verify(token, process.env.ACCESS_TOKEN, function (err, decoded) {
+
+  jwt.verify(authHeader, process.env.DB_ACCESS_TOKEN, function (err, decoded) {
     if (err) {
-      res.status(403).send({ message: "forbiden access" });
+      console.log(err);
+      return res.status(402).send("unauthorize access");
     }
+
     req.decoded = decoded;
     next();
   });
-}
+};
 
 // mongodb
 
@@ -49,6 +52,43 @@ async function run() {
 
     const orderCollection = client.db("resalebd").collection("orders");
     const paymentsCollection = client.db("resalebd").collection("payments");
+
+    //veryfy user
+    const verifyUser = async (req, res, next) => {
+      const decodeEmail = req.decoded.email;
+      const filter = { email: decodeEmail };
+      const user = await userCollection.findOne(filter);
+
+      if (user.role !== "user") {
+        return res.status(403).send({ message: "Forbidden Access" });
+      }
+      next();
+    };
+
+    //veryfy admin
+    const verifyAdmin = async (req, res, next) => {
+      const decodeEmail = req.decoded.email;
+      const filter = { email: decodeEmail };
+      const user = await userCollection.findOne(filter);
+
+      if (user.role !== "admin") {
+        return res.status(403).send({ message: "Forbidden Access" });
+      }
+      next();
+    };
+
+    //veryfy Seller
+
+    const verifySeller = async (req, res, next) => {
+      const decodeEmail = req.decoded.email;
+      const filter = { email: decodeEmail };
+      const user = await userCollection.findOne(filter);
+
+      if (user.role !== "seller") {
+        return res.status(403).send({ message: "Forbidden Access" });
+      }
+      next();
+    };
 
     // get api for all category
 
@@ -211,7 +251,7 @@ async function run() {
     });
 
     // ===get user orders
-    app.get("/allorder", async (req, res) => {
+    app.get("/allorder", verifyJwt, verifyUser, async (req, res) => {
       const email = req.query.email;
       const query = { buyerEmail: email };
       const result = await orderCollection.find(query).toArray();
