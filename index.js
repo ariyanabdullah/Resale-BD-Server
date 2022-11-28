@@ -148,7 +148,7 @@ async function run() {
     });
 
     // post api for product collection
-    app.post("/products", verifyJwt, verifyAdmin, async (req, res) => {
+    app.post("/products", verifyJwt, verifySeller, async (req, res) => {
       const product = req.body;
       const result = await productCollection.insertOne(product);
       res.send(result);
