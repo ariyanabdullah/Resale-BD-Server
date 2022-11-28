@@ -107,7 +107,7 @@ async function run() {
     });
 
     // get all users by query
-    app.get("/users", async (req, res) => {
+    app.get("/users", verifyJwt, verifyAdmin, async (req, res) => {
       const role = req.query.role;
       const query = { role: role };
       const result = await userCollection.find(query).toArray();
@@ -148,7 +148,7 @@ async function run() {
     });
 
     // post api for product collection
-    app.post("/products", async (req, res) => {
+    app.post("/products", verifyJwt, verifyAdmin, async (req, res) => {
       const product = req.body;
       const result = await productCollection.insertOne(product);
       res.send(result);
@@ -192,19 +192,24 @@ async function run() {
 
     // advertis Items in product api
 
-    app.patch("/advertisItem/:id", async (req, res) => {
-      const id = req.params.id;
+    app.patch(
+      "/advertisItem/:id",
+      verifyJwt,
+      verifySeller,
+      async (req, res) => {
+        const id = req.params.id;
 
-      const filter = { _id: ObjectId(id) };
-      const updateDoc = {
-        $set: {
-          isAdvertise: true,
-        },
-      };
+        const filter = { _id: ObjectId(id) };
+        const updateDoc = {
+          $set: {
+            isAdvertise: true,
+          },
+        };
 
-      const result = await productCollection.updateOne(filter, updateDoc);
-      res.send(result);
-    });
+        const result = await productCollection.updateOne(filter, updateDoc);
+        res.send(result);
+      }
+    );
 
     // get all products of a seller
 
