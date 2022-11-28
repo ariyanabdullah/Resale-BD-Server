@@ -249,7 +249,7 @@ async function run() {
     });
 
     // post all orders
-    app.post("/orders", async (req, res) => {
+    app.post("/orders", verifyJwt, verifyUser, async (req, res) => {
       const order = req.body;
       const result = await orderCollection.insertOne(order);
       res.send(result);
