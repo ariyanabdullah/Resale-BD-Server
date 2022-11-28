@@ -7,12 +7,28 @@ const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const app = express();
 const port = process.env.PORT || 5000;
 
-// console.log(process.env.STRIPE_SECRET_KEY);
+console.log(process.env.DB_ACCESS_TOKEN);
 
 // middle ware
 
 app.use(cors());
 app.use(express.json());
+
+// ===verify Token====
+function verifyJWT(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).send("unauthorize access");
+  }
+  const token = authHeader;
+  jwt.verify(token, process.env.ACCESS_TOKEN, function (err, decoded) {
+    if (err) {
+      res.status(403).send({ message: "forbiden access" });
+    }
+    req.decoded = decoded;
+    next();
+  });
+}
 
 // mongodb
 
@@ -273,6 +289,22 @@ async function run() {
       const orderUpdate = await orderCollection.updateOne(query, updateOrder);
 
       res.send(result);
+    });
+
+    // jwt token
+
+    app.get("/jwt", async (req, res) => {
+      const email = req.query.email;
+      console.log(email);
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      if (user) {
+        const token = jwt.sign({ email }, process.env.DB_ACCESS_TOKEN, {
+          expiresIn: "1h",
+        });
+        return res.send({ accessToken: token });
+      }
+      res.status(401).send("Unauthorize access");
     });
 
     // the end
